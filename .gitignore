@@ -1,0 +1,20 @@
+### IDE specific files
+.idea
+
+### Python specific files
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# pyenv
+.python-version
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/

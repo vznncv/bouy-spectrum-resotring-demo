@@ -1,0 +1,9 @@
+# base packages
+numpy
+scipy
+pandas
+scikit-learn
+
+# graphic
+matplotlib
+pyqt5
