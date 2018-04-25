@@ -3,7 +3,15 @@ numpy
 scipy
 pandas
 scikit-learn
+numba
 
 # graphic
 matplotlib
-pyqt5
+
+# tests
+pyhamcrest
+pytest
+
+# jupyter notebooks
+jupyter
+sympy
