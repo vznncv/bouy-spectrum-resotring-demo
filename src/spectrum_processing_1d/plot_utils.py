@@ -39,13 +39,14 @@ class LineAnimation:
     def _init_plot(self):
         ax = self.fig.gca()
         ax.lines.clear()
-        ax.set_color_cycle(None)
+        ax.set_prop_cycle(None)
         self._line = ax.plot(self.x, self.y[0], **self._plot_options)[0]
         return self._line,
 
     def _update_plot(self, frame):
         self._line.set_xdata(self.x)
         self._line.set_ydata(frame)
+        return self._line,
 
     @property
     def axes(self):

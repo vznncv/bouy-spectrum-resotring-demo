@@ -4,6 +4,7 @@ scipy
 pandas
 scikit-learn
 numba
+numexpr
 
 # graphic
 matplotlib

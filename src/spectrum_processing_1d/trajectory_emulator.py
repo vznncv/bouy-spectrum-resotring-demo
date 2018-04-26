@@ -6,6 +6,7 @@ from collections import namedtuple
 import numpy as np
 from abc import abstractmethod, ABC
 from scipy.interpolate import interp1d
+import numexpr as ne
 
 from spectrum_processing_1d.utils import calculate_acceleration
 
@@ -112,8 +113,8 @@ def iter_trajectory(s_fun, k_omega_relation, x_0=0.0, frame_len=100, fn=1.0, fs=
         frame_phi = phi[np.newaxis] + d_phi * t[..., np.newaxis, np.newaxis]
 
         trajectory_data.t[...] = t
-        sin_harmonics = a_norm * np.sin(frame_phi)
-        cos_harmonics = a_norm * np.cos(frame_phi)
+        sin_harmonics = ne.evaluate("a_norm * sin(frame_phi)")
+        cos_harmonics = ne.evaluate("a_norm * cos(frame_phi)")
         trajectory_data.x[...] = -sin_harmonics.sum(-1)
         trajectory_data.y[...] = cos_harmonics.sum(-1)
 
