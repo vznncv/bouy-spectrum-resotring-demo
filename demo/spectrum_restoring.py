@@ -3,45 +3,14 @@ import sys
 import matplotlib.pyplot as plt
 import numpy as np
 from os.path import abspath, dirname, join
-from scipy.signal import welch
+
+from demo_util import restore_spectrum
 
 sys.path.append(abspath(join(dirname(__file__), '..', 'src')))
 
 from spectrum_processing_1d.trajectory_emulator import generate_trajectory, KFunRelation
 from spectrum_processing_1d.spectrum_functions import build_wave_spectrum_fun
 from spectrum_processing_1d.plot_utils import LineAnimation
-from spectrum_processing_1d.utils import calculate_trajectory
-
-
-def restore_spectrum(ax, ay, alpha, fs=2.0, nperseg=128, nfft=512):
-    """
-    Restore spectrum using acceleration data from sensors
-    """
-    transition_range = int(len(ax) * 0.1)
-    integration_alpha = 0.01
-    dt = 1 / fs
-
-    x = calculate_trajectory(ax, alpha=integration_alpha, spacing=dt)
-    y = calculate_trajectory(ay, alpha=integration_alpha, spacing=dt)
-
-    signal = x[transition_range:] + 1j * y[transition_range:]
-    f, s = welch(
-        signal,
-        fs=fs,
-        nperseg=nperseg,
-        nfft=nfft,
-        scaling='spectrum',
-        return_onesided=False,
-        axis=0,
-    )
-    f = np.fft.fftshift(f, axes=0)
-    s = np.fft.fftshift(s, axes=0)
-    # TODO: fix hack
-    f *= fs
-    s *= 2 / fs
-
-    omega = f * 2 * np.pi
-    return omega, s, x, y
 
 
 def main(args=None):
