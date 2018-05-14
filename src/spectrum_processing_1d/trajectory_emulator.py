@@ -3,10 +3,10 @@ Helper module with function and classes to emulate 1d wave surface and buoy traj
 """
 from collections import namedtuple
 
+import numexpr as ne
 import numpy as np
 from abc import abstractmethod, ABC
 from scipy.interpolate import interp1d
-import numexpr as ne
 
 from spectrum_processing_1d.utils import calculate_acceleration
 
@@ -129,8 +129,8 @@ def iter_trajectory(s_fun, k_omega_relation, x_0=0.0, frame_len=100, fn=1.0, fs=
         ay = calculate_acceleration(trajectory_data.y, spacing=dt, axis=0)
 
         # calculate sensor acceleration
-        trajectory_data.sensor_ax[...] = ax * np.cos(angle) + ay * np.sin(angle)
-        trajectory_data.sensor_ay[...] = -ax * np.sin(angle) + ay * np.cos(angle)
+        trajectory_data.sensor_ax[...] = ax * np.cos(angle) - ay * np.sin(angle)
+        trajectory_data.sensor_ay[...] = ax * np.sin(angle) + ay * np.cos(angle)
 
         t += dt * frame_len
         phi += d_phi * frame_len

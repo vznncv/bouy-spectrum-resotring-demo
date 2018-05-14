@@ -1,11 +1,13 @@
 import matplotlib
 import matplotlib.pyplot as plt
-import os
 import numpy as np
+import os
+# noinspection PyUnresolvedReferences
+from mpl_toolkits.mplot3d import Axes3D
 from os.path import join, dirname, exists
 from scipy.signal import welch
 
-from spectrum_processing_1d.utils import calculate_trajectory
+from spectrum_processing_1d.utils import calculate_particle_trajectory
 
 
 def get_image_dir():
@@ -151,7 +153,8 @@ def get_demo_plot_manager(start_figure_num=1):
     interactive = True if 'INTERACTIVE_DEMO' in os.environ else False
     return PlotManager(result_dir=get_image_dir(), interactive=interactive, start_figure_num=start_figure_num)
 
-def restore_spectrum(ax, ay, alpha, fs=2.0, nperseg=128, nfft=512):
+
+def restore_spectrum(ax, ay, alpha, fs=2.0, nperseg=128, nfft=None):
     """
     Restore spectrum using acceleration data from sensors
     """
@@ -159,8 +162,11 @@ def restore_spectrum(ax, ay, alpha, fs=2.0, nperseg=128, nfft=512):
     integration_alpha = 0.01
     dt = 1 / fs
 
-    x = calculate_trajectory(ax, alpha=integration_alpha, spacing=dt)
-    y = calculate_trajectory(ay, alpha=integration_alpha, spacing=dt)
+    x, y, angle = calculate_particle_trajectory(
+        sensor_ax=ax, sensor_ay=ay, sensor_alpha=alpha,
+        alpha=integration_alpha,
+        spacing=dt
+    )
 
     signal = x[transition_range:] + 1j * y[transition_range:]
     f, s = welch(
@@ -171,6 +177,7 @@ def restore_spectrum(ax, ay, alpha, fs=2.0, nperseg=128, nfft=512):
         scaling='spectrum',
         return_onesided=False,
         axis=0,
+        detrend='constant'
     )
     f = np.fft.fftshift(f, axes=0)
     s = np.fft.fftshift(s, axes=0)
@@ -179,4 +186,4 @@ def restore_spectrum(ax, ay, alpha, fs=2.0, nperseg=128, nfft=512):
     s *= 2 / fs
 
     omega = f * 2 * np.pi
-    return omega, s, x, y
+    return omega, s, x, y, angle

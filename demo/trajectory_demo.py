@@ -1,9 +1,6 @@
 # noinspection PyUnresolvedReferences
-from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy.stats
-from scipy.signal import welch
 
 from demo_util import get_demo_plot_manager, restore_spectrum
 from spectrum_processing_1d.spectrum_functions import build_wave_spectrum_fun
@@ -44,13 +41,13 @@ def main():
         fs=fs
     )
 
-    omega_est, s_est, x_est, y_est = restore_spectrum(
+    omega_est, s_est, x_est, y_est, angle_est = restore_spectrum(
         ax=trajectory_data_wave_param.sensor_ax[:, 0],
         ay=trajectory_data_wave_param.sensor_ay[:, 0],
         alpha=trajectory_data_wave_param.sensor_alpha[:, 0],
         fs=fs,
-        nperseg=128,
-        nfft=512
+        nperseg=512,
+        nfft=1024
     )
     # cut spectrum
     omega_lim = np.searchsorted(omega_est, -fn * 2 * np.pi, side='right')
@@ -78,8 +75,6 @@ def main():
         x_est = x_est[slice_to_show]
         x_src = trajectory_data_wave_param.x[slice_to_show]
         y_est = y_est[slice_to_show]
-        # TODO: fix hack
-        y_est -= y_est.mean()
         y_src = trajectory_data_wave_param.y[slice_to_show]
         t = trajectory_data_wave_param.t[slice_to_show]
         plt.subplot(211)
