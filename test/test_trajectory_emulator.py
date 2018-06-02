@@ -1,11 +1,9 @@
 import numpy as np
-from hamcrest import assert_that
-from scipy.signal import welch
+from hamcrest import assert_that, equal_to, less_than
 from unittest import TestCase
 
 from spectrum_processing_1d.spectrum_functions import build_wave_spectrum_fun
 from spectrum_processing_1d.trajectory_emulator import KFunRelation, generate_trajectory
-from spectrum_processing_1d.utils import calculate_trajectory
 
 
 class KFunRelationTestCase(TestCase):
@@ -23,7 +21,6 @@ class KFunRelationTestCase(TestCase):
             k_fun_exp(omega),
             atol=0.0001
         )
-        print(repr(k))
 
         k = np.linspace(-3, 3, 10)
         omega = k_omega_relation.calc_omega(k)
@@ -39,66 +36,67 @@ class TrajectoryEmulatorTestCase(TestCase):
     def setUp(self):
         self.spectrum_fun = build_wave_spectrum_fun(
             omega_m=np.array([0.08, 0.15, -0.1]) * 2 * np.pi,
-            std=np.array([0.8, 0.4, 0.6])
+            var=np.array([0.8, 0.4, 0.6]),
+            omega_lim=-0.5 * 2 * np.pi
         )
         self.k_omega_relation = KFunRelation(lambda omega: omega ** 2 / 9.8)
 
-    def test_iter_trajectory(self):
-        dt = 0.5
+    def test_generate_trajectory(self):
+        num_points = 2
         trajectory_data = generate_trajectory(
             s_fun=self.spectrum_fun,
             k_omega_relation=self.k_omega_relation,
-            x_0=np.linspace(-100, 100, 3),
-            trajectory_len=10000,
+            x_0=np.linspace(-100, 100, num_points),
+            trajectory_len=4000,
             fn=1.0,
-            fs=1 / dt,
+            fs=3.0,
             seed=0
         )
 
-        # check coordinate variance
-        x_var = trajectory_data.x.var(0)
-        np.testing.assert_allclose(x_var, 1.8, atol=0.1)
-        y_var = trajectory_data.y.var(0)
-        np.testing.assert_allclose(y_var, 1.8, atol=0.1)
+        num_samples = 12000
+        for elem in trajectory_data:
+            assert_that(elem.shape[0], equal_to(num_samples))
 
-        # check that angle is small
-        max_angle = np.abs(trajectory_data.angle).max(0)
-        np.testing.assert_allclose(max_angle, 0.0, atol=0.1)
+        # check coordinate variance and mean value
+        x_vars = trajectory_data.x.var(0)
+        np.testing.assert_allclose(x_vars, 1.8, atol=0.1)
+        y_vars = trajectory_data.y.var(0)
+        np.testing.assert_allclose(y_vars, 1.8, atol=0.1)
 
-        # check that angle accelerations is small
-        max_alpha = np.abs(trajectory_data.sensor_alpha).max(0)
-        np.testing.assert_allclose(max_alpha, 0.0, atol=0.05)
+        x_mean = trajectory_data.x.mean(0)
+        np.testing.assert_allclose(x_mean, 0, atol=0.01)
+        y_mean = trajectory_data.y.mean(0)
+        np.testing.assert_allclose(y_mean, 0, atol=0.01)
 
-        alpha = 0.01
-        x_est = calculate_trajectory(trajectory_data.sensor_ax, alpha=alpha, spacing=dt)
-        y_est = calculate_trajectory(trajectory_data.sensor_ay, alpha=alpha, spacing=dt)
+        angle_var = trajectory_data.angle.var(0)
+        np.testing.assert_allclose(angle_var, 0.0001, atol=0.001)
+        angle_mean = trajectory_data.angle.mean(0)
+        np.testing.assert_allclose(angle_mean, 0, atol=0.001)
 
-        # remove transitional process
-        transitional_range = 1000
-        x_est = x_est[transitional_range:, :]
-        y_est = y_est[transitional_range:, :]
+    def test_fs_insensitivity(self):
+        def get_trajectory(fs, seed=0):
+            return generate_trajectory(
+                s_fun=self.spectrum_fun,
+                k_omega_relation=self.k_omega_relation,
+                x_0=0.0,
+                trajectory_len=30,  # note: small range is chosen to prevent noise influence
+                fn=1.0,
+                fs=fs,
+                seed=seed
+            )
 
-        # estimate psd function
-        signal = x_est + 1j * y_est
-        f, s_est = welch(
-            signal,
-            fs=1 / dt,
-            nperseg=128,
-            nfft=512,
-            scaling='spectrum',
-            return_onesided=False,
-            axis=0,
-        )
-        f = np.fft.fftshift(f, axes=0)
-        s_est = np.fft.fftshift(s_est, axes=0)
-        # TODO: fix hack
-        f *= 2
-        s_est *= 2
+        fs_base = 2.0
+        fs_k = [1, 3, 5]
+        trajectory_datas = [get_trajectory(fs_base * k, 0) for k in fs_k]
 
-        s_exp = self.spectrum_fun(f * 2 * np.pi)
-        s_exp = np.broadcast_to(s_exp[..., np.newaxis], s_est.shape)
+        # import matplotlib.pyplot as plt
+        # for i, trajectory_data in enumerate(trajectory_datas):
+        #     plt.subplot(len(fs_k), 1, i + 1)
+        #     plt.plot(trajectory_data.t, trajectory_data.x[:, 0])
+        # plt.show()
 
-        # check estimation
-        cmp_res = np.isclose(s_est, s_exp, atol=0.1)
-        mismatch_percent = 1 - cmp_res.sum(0) / len(cmp_res)
-        assert_that(np.all(mismatch_percent < 0.08))
+        vals_to_compare = [trajectory_data.x[::k] for k, trajectory_data in zip(fs_k, trajectory_datas)]
+        standard_val = vals_to_compare[0]
+        vals_to_compare = vals_to_compare[1:]
+        for val in vals_to_compare:
+            assert_that((val-standard_val).std(), less_than(0.6))

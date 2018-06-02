@@ -1,9 +1,6 @@
 # base packages
 numpy
 scipy
-pandas
-scikit-learn
-numba
 numexpr
 
 # graphic
@@ -12,7 +9,3 @@ matplotlib
 # tests
 pyhamcrest
 pytest
-
-# jupyter notebooks
-jupyter
-sympy

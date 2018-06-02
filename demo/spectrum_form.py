@@ -1,3 +1,6 @@
+"""
+The demo script of the ocean wave spectrum and its spatio-temporal representation.
+"""
 # noinspection PyUnresolvedReferences
 import matplotlib.pyplot as plt
 import numpy as np
@@ -22,7 +25,7 @@ def main():
         g = 9.8
         k_max = omega ** 2 / g
 
-        s_omega_fun = build_wave_spectrum_fun(omega_m=0.2, std=1.0)
+        s_omega_fun = build_wave_spectrum_fun(omega_m=0.2, var=1.0)
 
         scale = 0.0005
         h = np.max(np.stack((

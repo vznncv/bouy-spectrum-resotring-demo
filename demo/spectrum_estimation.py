@@ -1,8 +1,14 @@
+"""
+The script with demonstration of the spectrum estimation by the data
+from acceleration sensors.
+"""
+
 # noinspection PyUnresolvedReferences
 import matplotlib.pyplot as plt
 import numpy as np
 
-from demo_util import get_demo_plot_manager, restore_spectrum
+from demo_util import get_demo_plot_manager
+from spectrum_processing_1d.processing import estimate_spectrum
 from spectrum_processing_1d.spectrum_functions import build_wave_spectrum_fun
 from spectrum_processing_1d.trajectory_emulator import KFunRelation, generate_trajectory
 
@@ -11,7 +17,8 @@ def main():
     # spectrum function
     s_fun = build_wave_spectrum_fun(
         omega_m=np.array([0.15, 0.45, -0.2]) * np.pi * 2,
-        std=np.array([1.0, 0.5, 0.6])
+        var=np.array([1.0, 0.5, 0.6]),
+        omega_lim=1.0 * 2 * np.pi
     )
     # relation between k and omega
     k_omega_relation = KFunRelation(lambda omega: omega ** 2 / 9.8)
@@ -22,6 +29,7 @@ def main():
     # demo to show source spectrum and wave
     x_0 = np.linspace(-10, 10, 1000)
 
+    # create wave sample
     trajectory_data_wave_demo = generate_trajectory(
         s_fun=s_fun,
         k_omega_relation=k_omega_relation,
@@ -31,7 +39,7 @@ def main():
         fs=fs
     )
 
-    # demo to show spectrum restoration
+    # emulate sensor data
     trajectory_data_wave_param = generate_trajectory(
         s_fun=s_fun,
         k_omega_relation=k_omega_relation,
@@ -41,18 +49,24 @@ def main():
         fs=fs
     )
 
-    omega_est, s_est, x_est, y_est, angle_est = restore_spectrum(
+    # estimate spectrum form
+    omega_est, s_est, (x_est, y_est, angle_est) = estimate_spectrum(
         ax=trajectory_data_wave_param.sensor_ax[:, 0],
         ay=trajectory_data_wave_param.sensor_ay[:, 0],
         alpha=trajectory_data_wave_param.sensor_alpha[:, 0],
+        return_trajectory=True,
         fs=fs,
         nperseg=512,
-        nfft=1024
+        nfft=1024,
+        corr_dist=20.0
     )
     # cut spectrum
     omega_lim = np.searchsorted(omega_est, -fn * 2 * np.pi, side='right')
     omega_est = omega_est[omega_lim:-omega_lim]
     s_est = s_est[omega_lim:-omega_lim]
+    # HACK: hardcoded power compensation
+    # TODO: make better high pass filter for noise suppress and calculation error suppression
+    s_est *= 2
 
     with get_demo_plot_manager(start_figure_num=2) as pm:
         pm.build_figure('source_spectrum', height='width/3')
